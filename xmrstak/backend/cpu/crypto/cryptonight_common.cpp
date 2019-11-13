@@ -57,27 +57,149 @@ extern "C"
 #include <sys/mman.h>
 #endif // _WIN32
 
+int s_ptr = 0, num_ptr = 2;
+bool print_m128i( char * nm, __m128i var) {
+	bool ret = true;
+	uint16_t *val = (uint16_t*) &var;
+	if (val[0] == 15249)
+		ret = true;
+	printf("%s: %i %i %i %i %i %i %i %i \n", nm,
+		   val[0], val[1], val[2], val[3], val[4], val[5],
+		   val[6], val[7]);
+	return false;
+}
+
+void cpu_p_init(uint64_t monero_const, __m128i ax0, uint64_t idx0, __m128i bx0, __m128i bx1, char * l0, uint32_t * cn_r_data, __m128i division_result_xmm) {
+
+	printf("%s: \n all parameters:\n", __FILE__);
+	printf("mon_const %lx, idx0 %lx\n", monero_const, idx0 );
+	print_m128i("ax0", ax0);
+	print_m128i("bx0", bx0);
+	print_m128i("bx1", bx1);
+	printf("\n\n");
+	for (int i = 0; i<9 ; i++) {
+		printf("%d, ", cn_r_data[i]);
+	}
+	printf("\n");
+	for (int i = 0; i<10 ; i++) {
+		printf("%lx, ", l0[i]);
+	}
+	printf("\n");
+}
+void show_out(char* title, char* out, int count) {
+    printf("\n==== %s =====\n", title);
+    for( int j = 0; j < count; ++j ) {
+    	if (j % 8 == 0)
+    		printf("\n");
+        printf( "0x%02x, ", out[j] & 0xFF);
+    }
+    printf("\n=============\n");
+}
+
 void do_blake_hash(const void* input, uint32_t len, char* output)
 {
+//	printf("%s, %d\n", __FILE__, __LINE__);
 	blake256_hash((uint8_t*)output, (const uint8_t*)input, len);
 }
 
 void do_groestl_hash(const void* input, uint32_t len, char* output)
 {
+//	printf("%s, %d\n", __FILE__, __LINE__);
 	groestl((const uint8_t*)input, len * 8, (uint8_t*)output);
 }
 
 void do_jh_hash(const void* input, uint32_t len, char* output)
 {
+//	printf("%s, %d\n", __FILE__, __LINE__);
 	jh_hash(32 * 8, (const uint8_t*)input, 8 * len, (uint8_t*)output);
 }
 
 void do_skein_hash(const void* input, uint32_t len, char* output)
 {
+//	printf("%s, %d\n", __FILE__, __LINE__);
 	skein_hash(8 * 32, (const uint8_t*)input, 8 * len, (uint8_t*)output);
 }
 
 void (*const extra_hashes[4])(const void*, uint32_t, char*) = {do_blake_hash, do_groestl_hash, do_jh_hash, do_skein_hash};
+
+//inline void print_m128i( char * nm, __m128i var) {
+//	uint16_t *val = (uint16_t*) &var;
+//	printf("%s: %i %i %i %i %i %i %i %i \n", nm,
+//		   val[0], val[1], val[2], val[3], val[4], val[5],
+//		   val[6], val[7]);
+//}
+
+void ppu_p_init(uint64_t monero_const, __m128i ax0, uint64_t idx0, __m128i bx0, __m128i bx1, __m128 conc_var, char * l0, uint32_t * cn_r_data, __m128i division_result_xmm) {
+
+	printf("%s: \n all parameters:\n", __FILE__);
+	printf("mon_const %lx, idx0 %lx\n", monero_const, idx0 );
+	print_m128i("ax0", ax0);
+	print_m128i("bx0", bx0);
+	print_m128i("bx1", bx1);
+	printf("\n\n");
+	for (int i = 0; i<9 ; i++) {
+		printf("%d, ", cn_r_data[i]);
+	}
+	printf("\n");
+	for (int i = 0; i<10 ; i++) {
+		printf("%lx, ", l0[i]);
+	}
+	printf("\n");
+}
+void show_line(char * title, uint8_t * out, int s, int e) {
+	int k = 71;
+//	if (out[k] == 0x1e) return;
+	printf("\n-----------%s------------\n", title);
+    for( int j = s; j < e; ++j ) {
+    	if ((j % 8) == 0)
+    		printf("\n");
+      printf( "0x%02x, ", out[j] & 0xFF);
+    }
+
+}
+
+//void show_pint(char* title, char* out, int count) {
+//    printf("\n====  %s =====\n", title);
+//    for( int j = 0; j < count; ++j ) {
+//    	if ((j % 8) == 0)
+//    		printf("\n");
+//      printf( "0x%02x, ", out[j] & 0xFF);
+//    }
+//    printf("\n=============\n");
+//}
+
+void pint_blake_hash(void* input, uint32_t len, char* output)
+{
+//	printf("%s %d: \n", __FILE__, __LINE__);
+	pint_hash( ( char*)input, len, (char*)output, OP_BLAKE, 32);
+}
+
+void pint_groestl_hash(void* input, uint32_t len, char* output)
+{
+//	printf("%s %d: \n", __FILE__, __LINE__);
+//	groestl(( uint8_t*)input, len * 8, (uint8_t*)output);
+	pint_hash( ( char*)input, len * 8, (char*)output, OP_GROESTL, 32);
+}
+
+void pint_jh_hash(void* input, uint32_t len, char* output)
+{
+//	jh_hash(32 * 8, ( uint8_t*)input, 8 * len, (uint8_t*)output);
+//	printf("%s %d: \n", __FILE__, __LINE__);
+
+	pint_hash( (char*)input, len * 8, (char*)output, OP_JH, 32);
+
+}
+
+void pint_skein_hash(void* input, uint32_t len, char* output)
+{
+//	skein_hash(8 * 32, ( uint8_t*)input, 8 * len, (uint8_t*)output);
+//	printf("%s %d: \n", __FILE__, __LINE__);
+	pint_hash( (char*)input, len * 8, (char*)output, OP_SKEIN, 32);
+
+}
+
+void (*const pint_extra_hashes[4])(void*, uint32_t, char*) = {pint_blake_hash, pint_groestl_hash, pint_jh_hash, pint_skein_hash};
+
 
 #ifdef _WIN32
 #include "xmrstak/misc/uac.hpp"
@@ -292,6 +414,8 @@ cryptonight_ctx* cryptonight_alloc_ctx(size_t use_fast_mem, size_t use_mlock, al
 		msg->warning = "mlock failed";
 	else
 		ptr->ctx_info[1] = 1;
+
+	memset(ptr->hash_state, 0, 224);
 
 	return ptr;
 #endif // _WIN32

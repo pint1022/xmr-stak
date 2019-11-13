@@ -25,7 +25,7 @@ class minethd : public iBackend
 	typedef void (*cn_on_new_job)(const miner_work&, cryptonight_ctx**);
 
 	static void func_selector(cryptonight_ctx**, bool bHaveAes, bool bNoPrefetch, const xmrstak_algo& algo);
-	static bool thd_setaffinity(std::thread::native_handle_type h, uint64_t cpu_id);
+	static bool thd_setaffinity(std::thread::native_handle_type h, uint64_t ppu_id);
 
 	static cryptonight_ctx* minethd_alloc_ctx();
 
@@ -63,5 +63,5 @@ class minethd : public iBackend
 	std::string asm_version_str = "off";
 };
 
-} // namespace cpu
+} // namespace ppu
 } // namespace xmrstak

@@ -25,6 +25,7 @@ struct params
 	bool AMDCache;
 	bool useNVIDIA;
 	bool useCPU;
+	bool usePPU;
 	std::string amdGpus;
 	std::string nvidiaGpus;
 	// user selected OpenCL vendor
@@ -51,6 +52,7 @@ struct params
 	std::string rootAMDCacheDir;
 	std::string configFileNVIDIA;
 	std::string configFileCPU;
+	std::string configFilePPU;
 
 	std::string outputFile;
 	int h_print_time = -1;
@@ -71,13 +73,15 @@ struct params
 		AMDCache(true),
 		useNVIDIA(true),
 		useCPU(true),
+		usePPU(true),
 		openCLVendor("AMD"),
 		configFile("config.txt"),
 		configFilePools("pools.txt"),
 		configFileAMD("amd.txt"),
 		rootAMDCacheDir(get_home() + "/.openclcache/"),
 		configFileCPU("cpu.txt"),
-		configFileNVIDIA("nvidia.txt")
+		configFileNVIDIA("nvidia.txt"),
+		configFilePPU("ppu.txt")
 	{
 	}
 };

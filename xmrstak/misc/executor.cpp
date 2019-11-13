@@ -452,7 +452,12 @@ void executor::on_miner_result(size_t pool_id, job_result& oResult)
 		{
 			printer::inst()->print_msg(L3, "CPU: Share accepted. Pool: %s", pool->get_pool_addr());
 		}
+		else if (pvThreads->at(oResult.iThreadId)->backendType == xmrstak::iBackend::BackendType::PPU)
+		{
+			printer::inst()->print_msg(L3, "PPU: Share accepted. Pool: %s", pool->get_pool_addr());
+		}
 		else
+
 		{
 			printer::inst()->print_msg(L3, "%s GPU %u: Share accepted. Pool: %s", name.c_str(), pvThreads->at(oResult.iThreadId)->iGpuIndex, pool->get_pool_addr());
 		}

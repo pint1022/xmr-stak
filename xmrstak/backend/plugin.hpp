@@ -42,18 +42,22 @@ struct plugin
 #else
 		// `.so` linux file extention for dynamic libraries
 		std::string fileExtension = ".so";
+		printf("%s %d: 1000 ------------------- %s \n", __FILE__, __LINE__, libName.c_str());
+
 #if defined(__APPLE__)
 		// `.dylib` Mac OS X file extention for dynamic libraries
 		fileExtension = ".dylib";
 #endif
 		// search library in working directory
-		libBackend = dlopen(("./lib" + libName + fileExtension).c_str(), RTLD_LAZY);
-		// fallback to binary directory
-		if(!libBackend)
-			libBackend = dlopen((params::inst().executablePrefix + "lib" + libName + fileExtension).c_str(), RTLD_LAZY);
-		// try use LD_LIBRARY_PATH
+		std::string lib_str = "./bin/lib" + libName + fileExtension;
+		printf("%s %d: 1500 ------------------- %s \n", __FILE__, __LINE__, lib_str.c_str());
+		libBackend = dlopen(lib_str.c_str(), RTLD_LAZY);
+//		libBackend = dlopen("./bin/libxmrstak_ppu_backend.so", RTLD_LAZY);
+		printf("%s %d: 2000 ------------------- %s \n", __FILE__, __LINE__, lib_str.c_str());
+
 		if(!libBackend)
 			libBackend = dlopen(("lib" + libName + fileExtension).c_str(), RTLD_LAZY);
+
 		if(!libBackend)
 		{
 			std::cerr << "WARNING: " << m_backendName << " cannot load backend library: " << dlerror() << std::endl;
@@ -70,8 +74,10 @@ struct plugin
 #else
 		// reset last error
 		dlerror();
+
 		fn_startBackend = (startBackend_t)dlsym(libBackend, "xmrstak_start_backend");
 		const char* dlsym_error = dlerror();
+
 		if(dlsym_error)
 		{
 			std::cerr << "WARNING: backend plugin " << libName << " contains no entry 'xmrstak_start_backend': " << dlsym_error << std::endl;
