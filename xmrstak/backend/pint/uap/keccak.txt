@@ -1,0 +1,136 @@
+    static keccak_f_1600(a) {
+
+        const nRounds = 24; // number of rounds nᵣ = 12 + 2ℓ, hence 24 for Keccak-f[1600] [[Keccak §1.2]
+
+        /**
+         * Round constants: output of a maximum-length linear feedback shift register (LFSR) for the
+         * ι step [Keccak §1.2, §2.3.5], keccak.noekeon.org/specs_summary.html.
+         *
+         *   RC[iᵣ][0][0][2ʲ−1] = rc[j+7iᵣ] for 0 ≤ j ≤ l
+         * where
+         *   rc[t] = ( xᵗ mod x⁸ + x⁶ + x⁵ + x⁴ + 1 ) mod x in GF(2)[x].
+         */
+        const RC = [ // TODO: interleaved? word ordering? each word-pair is [even,odd]?
+            [ 0x00000001, 0x00000000 ], [ 0x00000000, 0x00000089 ], [ 0x00000000, 0x8000008B ],
+            [ 0x00000000, 0x80008080 ], [ 0x00000001, 0x0000008B ], [ 0x00000001, 0x00008000 ],
+            [ 0x00000001, 0x80008088 ], [ 0x00000001, 0x80000082 ], [ 0x00000000, 0x0000000B ],
+            [ 0x00000000, 0x0000000A ], [ 0x00000001, 0x00008082 ], [ 0x00000000, 0x00008003 ],
+            [ 0x00000001, 0x0000808B ], [ 0x00000001, 0x8000000B ], [ 0x00000001, 0x8000008A ],
+            [ 0x00000001, 0x80000081 ], [ 0x00000000, 0x80000081 ], [ 0x00000000, 0x80000008 ],
+            [ 0x00000000, 0x00000083 ], [ 0x00000000, 0x80008003 ], [ 0x00000001, 0x80008088 ],
+            [ 0x00000000, 0x80000088 ], [ 0x00000001, 0x00008000 ], [ 0x00000000, 0x80008082 ],
+        ];
+
+
+        // Keccak-f permutations
+        for (let r=0; r<nRounds; r++) {
+            // apply step mappings θ, ρ, π, χ, ι to the state 'a'
+            //console.log('round', r); debug5x5(a);
+
+            // θ [Keccak §2.3.2]
+            const C = [ [0,0], [0,0], [0,0], [0,0], [0,0] ]; // intermediate sub-states
+            const D = [ [0,0], [0,0], [0,0], [0,0], [0,0] ];
+            for (let x=0; x<5; x++) {
+                for (let y=0; y<5; y++) {
+                    C[x][0] = (C[x][0] ^ a[x][y][0]) >>> 0;
+                    C[x][1] = (C[x][1] ^ a[x][y][1]) >>> 0;
+                }
+            }
+            for (let x=0; x<5; x++) {
+                // D[x] = C[x−1] ⊕ ROT(C[x+1], 1)
+                D[x][0] = (C[(x+4)%5][0] ^ ROT(C[(x+1)%5], 1)[0]) >>> 0;
+                D[x][1] = (C[(x+4)%5][1] ^ ROT(C[(x+1)%5], 1)[1]) >>> 0;
+            }
+            for (let x=0; x<5; x++) {
+                for (let y=0; y<5; y++) {
+                    a[x][y][0] = (a[x][y][0] ^ D[x][0]) >>> 0;
+                    a[x][y][1] = (a[x][y][1] ^ D[x][1]) >>> 0;
+                }
+            }
+            //console.log('round', r, 'after θ'); debug5x5(a);
+
+            // ρ + π [Keccak §2.3.4]
+            let [ x, y ] = [ 1, 0 ];
+            let current = a[x][y].slice(0); // Array.slice(0) clones the array
+            for (let t=0; t<24; t++) {
+                const [ X, Y ] = [ y, (2*x + 3*y) % 5 ];
+                const tmp = a[X][Y].slice(0);
+                a[X][Y] = ROT(current, ((t+1)*(t+2)/2) % 64);
+                //console.log('ρπ', x, y, current, ((t+1)*(t+2)/2) % 64, X, Y, a[X][Y])
+                current = tmp;
+                [ x, y ] = [ X, Y ];
+            }
+            // note by folding the π step into the ρ step, it is only necessary to cache the current
+            // lane; with π looping around x & y, it would be necessary to take a copy of the full
+            // state for the A[X,Y] = a[x,y] operation
+            //console.log('round', r, 'after ρπ'); debug5x5(a)
+
+            // χ [Keccak §2.3.1]
+            for (let y=0; y<5; y++) {
+                const C = [ [0,0], [0,0], [0,0], [0,0], [0,0] ];  // take a copy of the plane
+                for (let x=0; x<5; x++) {
+                    C[x][0] = (a[x][y][0] ^ ((~a[(x+1)%5][y][0]) & a[(x+2)%5][y][0])) >>> 0;
+                    C[x][1] = (a[x][y][1] ^ ((~a[(x+1)%5][y][1]) & a[(x+2)%5][y][1])) >>> 0;
+                }
+                for (let x=0; x<5; x++) {
+                    a[x][y][0] = C[x][0];
+                    a[x][y][1] = C[x][1];
+                }
+            }
+            //console.log('round', r, 'after χ'); debug5x5(a);
+
+            // ι [Keccak §2.3.5]
+            //console.log(RC[r])
+            a[0][0][0] = (a[0][0][0] ^ RC[r][0]) >>> 0;
+            a[0][0][1] = (a[0][0][1] ^ RC[r][1]) >>> 0;
+            //console.log('round', r, 'after ι'); debug5x5(a);
+        }
+
+        function ROT(a, d) { // rotate-left bit-interleaved lane 'a' by d bits
+            if (d==0) return a;
+            if (d==1) return [ (a[1] << 1 ^ a[1] >>> 31) >>> 0, a[0]>>>0 ]; // avoid invalid >>> 32! TODO: >>>0?
+            //console.log('ROT >', a, '>>', d)
+
+            let even=null, odd=null;
+
+            if (d%2 == 0) {
+                //d = d/2;
+                even = ((a[0] << d/2) ^ (a[0] >>> (32-d/2))) >>> 0;
+                odd  = ((a[1] << d/2) ^ (a[1] >>> (32-d/2))) >>> 0;
+            } else {
+                //d = (d+1)/2;
+                even = ((a[1] << (d+1)/2) ^ (a[1] >>> (32-(d+1)/2))) >>> 0;
+                odd  = ((a[0] << (d-1)/2) ^ (a[0] >>> (32-(d-1)/2))) >>> 0;
+            }
+            //console.log('ROT <', [ even, odd ])
+            return [ even, odd ];
+        }
+
+        function debug5x5i(s) { // debug of state s, interleaved (even/odd) format
+            const d = s.map((row, r) => s.map(col => col[r].map(w => hex(w)).join(':')).join(' ')).join('\n');
+            console.log(d);
+            function hex(n) { return ('00000000'+n.toString(16)).slice(-8); }
+        }
+
+        function debug5x5(s) { // debug of state s, high:low word format
+            const d = transpose(s).map(row => row.map(w=>fromInterleaved2(w)).map(col => col.map(w => hex(w)).join(':')).join(' ')).join('\n');
+            console.log(d);
+            function hex(n) { return ('00000000'+n.toString(16)).slice(-8); }
+        }
+
+        function fromInterleaved2(lane) { // convert (64-bit) lane[even,odd] to [high,low]
+            let high = 0, low = 0;
+            for (let i=0; i<64; i++) {
+                const bit = (i%2 == 0) ? (lane[0] >>> (i/2)) & 1 : (lane[1] >>> ((i-1)/2)) & 1;
+                if (i <  32) low  = (low | bit << i) >>> 0; // TODO: >>>0 needed?
+                if (i >= 32) high = (high |bit << (i-32)) >>> 0;
+            }
+            return [ low>>>0, high>>>0 ];
+        }
+
+        function transpose(array) { // TODO: why?
+            return array.map((row, r) => array.map(col => col[r]));
+        }
+    }
+
+}

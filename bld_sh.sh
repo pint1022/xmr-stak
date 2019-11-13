@@ -1,0 +1,2 @@
+cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/xmr-stak -DOpenCL_ENABLE=0 -DCUDA_ENABLE=0
+
