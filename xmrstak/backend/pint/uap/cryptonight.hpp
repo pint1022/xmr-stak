@@ -5,18 +5,13 @@
 
 #include "xmrstak/backend/cryptonight.hpp"
 #include "xmrstak/jconf.hpp"
+#define CORE_NUM 64
 
 typedef struct
 {
 	int device_id;
 	const char* device_name;
-	int device_arch[2];
-	int device_mpcount;
-	int device_blocks;
-	int device_threads;
-	int device_bfactor;
-	int device_bsleep;
-	int device_maxThreadsPerBlock;
+	char device_core[CORE_NUM];
 	int syncMode;
 	bool memMode;
 
@@ -39,7 +34,6 @@ typedef struct
 //	CUcontext cuContext;
 //	CUmodule module = nullptr;
 //	CUfunction kernel = nullptr;
-	uint64_t kernel_height = 0;
 	xmrstak_algo cached_algo = {xmrstak_algo_id::invalid_algo};
 } pint_ctx;
 
@@ -51,12 +45,12 @@ extern "C"
  * @param deviceCount[out] cuda device count
  * @return error code: 0 == error is occurred, 1 == no error
  */
-	int cuda_get_devicecount(int* deviceCount);
-	int cuda_get_deviceinfo(nvid_ctx* ctx);
-	int cryptonight_extra_cpu_init(nvid_ctx* ctx);
-	void cryptonight_extra_cpu_set_data(nvid_ctx* ctx, const void* data, uint32_t len);
-	void cryptonight_extra_cpu_prepare(nvid_ctx* ctx, uint32_t startNonce, const xmrstak_algo& miner_algo);
-	void cryptonight_extra_cpu_final(nvid_ctx* ctx, uint32_t startNonce, uint64_t target, uint32_t* rescount, uint32_t* resnonce, const xmrstak_algo& miner_algo);
+	int ppu_get_devicecount(int* deviceCount);
+	int ppu_get_deviceinfo(pint_ctx* ctx);
+	int cryptonight_extra_ppu_init(pint_ctx* ctx);
+	void cryptonight_extra_ppu_set_data(pint_ctx* ctx, const void* data, uint32_t len);
+	void cryptonight_extra_ppu_prepare(pint_ctx* ctx, uint32_t startNonce, const xmrstak_algo& miner_algo);
+	void cryptonight_extra_ppu_final(pint_ctx* ctx, uint32_t startNonce, uint64_t target, uint32_t* rescount, uint32_t* resnonce, const xmrstak_algo& miner_algo);
 }
 
-void cryptonight_core_cpu_hash(nvid_ctx* ctx, const xmrstak_algo& miner_algo, uint32_t startNonce, uint64_t chain_height);
+void cryptonight_core_ppu_hash(pint_ctx* ctx, const xmrstak_algo& miner_algo, uint32_t startNonce, uint64_t chain_height);

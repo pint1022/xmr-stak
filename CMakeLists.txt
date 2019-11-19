@@ -319,6 +319,17 @@ else()
     list(APPEND BACKEND_TYPES "cpu")
 endif()
 
+###############################################################################
+# CPU backend
+###############################################################################
+
+option(PPU_ENABLE "Enable or disable PPU support" ON)
+if(NOT PPU_ENABLE)
+    add_definitions("-DCONF_NO_PPU")
+else()
+    list(APPEND BACKEND_TYPES "ppu")
+endif()
+
 ################################################################################
 # Explicit march setting for Clang
 ################################################################################
@@ -492,8 +503,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "-Wl,-z,noexecstack ${CMAKE_CXX_FLAGS}")
-    set(CMAKE_C_FLAGS "-Wl,-z,noexecstack ${CMAKE_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-fpermissive -Wl,-z,noexecstack ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_C_FLAGS "-fpermissive -Wl,-z,noexecstack ${CMAKE_C_FLAGS}")
 endif()
 
 if(XMR-STAK_COMPILE STREQUAL "dev_release")
@@ -549,6 +560,20 @@ if(MICROHTTPD_ENABLE)
 endif()
 target_link_libraries(xmr-stak-c ${LIBS} xmr-stak-asm)
 
+# compile PPU backend
+if(1)
+    file(GLOB PPUSRCFILES
+        "xmrstak/backend/pint/uap/*.cpp"
+        "xmrstak/backend/pint/*.cpp")
+    add_library(xmrstak_ppu_backend
+        STATIC
+        ${PPUSRCFILES}
+    )
+    include_directories("/usr/include/pint" "/usr/local/uaptool/lib")
+    link_directories("/usr/local/lib/pint")
+    target_link_libraries(xmrstak_ppu_backend pintapi pthread )
+#    target_link_libraries(xmrstak_ppu_backend xmr-stak-backend)
+endif()
 # compile generic backend files
 file(GLOB BACKEND_CPP
     "xmrstak/*.cpp"
@@ -563,7 +588,7 @@ add_library(xmr-stak-backend
     STATIC
     ${BACKEND_CPP}
 )
-target_link_libraries(xmr-stak-backend xmr-stak-c ${CMAKE_DL_LIBS} xmr-stak-asm)
+target_link_libraries(xmr-stak-backend xmr-stak-c ${CMAKE_DL_LIBS} xmr-stak-asm xmrstak_ppu_backend)
 
 # compile CUDA backend
 if(CUDA_FOUND)
@@ -617,6 +642,7 @@ if(OpenCL_FOUND)
     target_link_libraries(xmrstak_opencl_backend xmr-stak-backend xmr-stak-asm)
 endif()
 
+
 # compile final binary
 file(GLOB SRCFILES_CPP "xmrstak/cli/*.cpp")
 set_source_files_properties(${SRCFILES_CPP} PROPERTIES LANGUAGE CXX)
@@ -629,6 +655,7 @@ endif()
 
 set(EXECUTABLE_OUTPUT_PATH "bin" CACHE STRING "Path to place executables relative to ${CMAKE_INSTALL_PREFIX}")
 set(LIBRARY_OUTPUT_PATH "bin" CACHE STRING "Path to place libraries relative to ${CMAKE_INSTALL_PREFIX}")
+link_directories(/usr/local/lib/pint)
 
 target_link_libraries(xmr-stak ${LIBS} xmr-stak-c xmr-stak-backend xmr-stak-asm)
 

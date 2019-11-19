@@ -25,9 +25,11 @@ struct extra_ctx_r
 	V4_Instruction code[NUM_INSTRUCTIONS_MAX + 1];
 };
 
+#define HASH_STATE_LENGTH 224
+
 struct cryptonight_ctx
 {
-	uint8_t hash_state[224]; // Need only 200, explicit align
+	uint8_t hash_state[HASH_STATE_LENGTH]; // Need only 200, explicit align
 	uint8_t* long_state;
 	uint8_t ctx_info[24]; //Use some of the extra memory for flags
 	cn_mainloop_fun loop_fn = nullptr;
@@ -35,6 +37,7 @@ struct cryptonight_ctx
 	uint8_t* fun_data = nullptr;
 	int asm_version = 0;
 	xmrstak_algo last_algo = invalid_algo;
+	int threadno;
 
 	union {
 		extra_ctx_r cn_r_ctx;
@@ -49,3 +52,4 @@ struct alloc_msg
 size_t cryptonight_init(size_t use_fast_mem, size_t use_mlock, alloc_msg* msg);
 cryptonight_ctx* cryptonight_alloc_ctx(size_t use_fast_mem, size_t use_mlock, alloc_msg* msg);
 void cryptonight_free_ctx(cryptonight_ctx* ctx);
+//oid show_out(char* title, char* out, int count);
