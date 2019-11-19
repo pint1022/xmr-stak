@@ -37,6 +37,9 @@
 #ifndef CONF_NO_OPENCL
 #include "amd/minethd.hpp"
 #endif
+//#ifndef CONF_NO_PPU
+#include "pint/minethd.hpp"
+//#endif
 
 #include <assert.h>
 #include <bitset>
@@ -51,7 +54,12 @@ namespace xmrstak
 
 bool BackendConnector::self_test()
 {
-	return cpu::minethd::self_test();
+	bool ret = cpu::minethd::self_test();
+	if (!ret) {
+		printf("%s %d: cpu self test fails!!!!!!!!!!!!\n", __FILE__, __LINE__);
+		return ret;
+	}
+	return (ret && ppu::minethd::self_test());
 }
 
 std::vector<iBackend*>* BackendConnector::thread_starter(miner_work& pWork)
@@ -143,7 +151,42 @@ std::vector<iBackend*>* BackendConnector::thread_starter(miner_work& pWork)
 			printer::inst()->print_msg(L0, "WARNING: backend CPU disabled.");
 	}
 #endif
+#ifndef CONF_NO_PPU
+	std::string libname = "xmrstak_ppu_backend";
+	if(params::inst().usePPU)
+	{
+#if 1
+		auto ppuThreads = ppu::minethd::thread_starter(static_cast<uint32_t>(pvThreads->size()), pWork);
+		pvThreads->insert(std::end(*pvThreads), std::begin(ppuThreads), std::end(ppuThreads));
+//		printf("%s %d: 1000 -------------------threadsize %d \n", __FILE__, __LINE__, ppuThreads.size());
+		if(ppuThreads.size() == 0)
+			printer::inst()->print_msg(L0, "WARNING: backend PPU disabled.");
+#else
+		printer::inst()->print_msg(L0, "PPU: try to load library '%s'", libname.c_str());
+//		plugin ppuplugin;
+//		ppuplugin.load("ppu", libname);
+//		printf("%s %d: 2000 -------------------\n", __FILE__, __LINE__);
 
+		std::vector<iBackend*>* ppuThreads = ppu::minethd::thread_starter(static_cast<uint32_t>(pvThreads->size()), pWork);
+//		printf("%s %d: 2000 -------------------\n", __FILE__, __LINE__);
+//		auto ppuThreads = ppu::minethd::thread_starter(static_cast<uint32_t>(pvThreads->size()), pWork);
+		size_t numWorkers = 0u;
+		if(ppuThreads != nullptr)
+		{
+			pvThreads->insert(std::end(*pvThreads), std::begin(*ppuThreads), std::end(*ppuThreads));
+			numWorkers = ppuThreads->size();
+			delete ppuThreads;
+		}
+//		else
+//		{
+//			// remove the plugin if we have found no GPUs
+//			ppuplugin.unload();
+//		}
+		if(numWorkers == 0)
+			printer::inst()->print_msg(L0, "WARNING: backend %s (PPU) disabled.", libname.c_str());
+#endif
+	}
+#endif
 	globalStates::inst().iThreadCount = pvThreads->size();
 	return pvThreads;
 }

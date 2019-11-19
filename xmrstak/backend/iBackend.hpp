@@ -25,7 +25,8 @@ struct iBackend
 		UNKNOWN = 0u,
 		CPU = 1u,
 		AMD = 2u,
-		NVIDIA = 3u
+		NVIDIA = 3u,
+		PPU = 4u
 	};
 
 	static const char* getName(const BackendType type)
@@ -34,7 +35,9 @@ struct iBackend
 			"unknown",
 			"cpu",
 			"amd",
-			"nvidia"};
+			"nvidia",
+			"ppu"
+		};
 
 		uint32_t i = static_cast<uint32_t>(type);
 		if(i >= countof(backendNames))

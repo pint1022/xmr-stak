@@ -23,6 +23,11 @@ namespace cpu
 class minethd;
 
 } // namespace cpu
+namespace ppu
+{
+class minethd;
+
+} // namespace ppu
 } // namespace xmrstak
 
 class executor

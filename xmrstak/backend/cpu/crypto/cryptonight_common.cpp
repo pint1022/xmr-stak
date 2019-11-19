@@ -57,7 +57,7 @@ extern "C"
 #include <sys/mman.h>
 #endif // _WIN32
 
-int s_ptr = 0, num_ptr = 2;
+int s_ptr = 0, num_ptr = 0;
 bool print_m128i( char * nm, __m128i var) {
 	bool ret = true;
 	uint16_t *val = (uint16_t*) &var;
@@ -415,6 +415,7 @@ cryptonight_ctx* cryptonight_alloc_ctx(size_t use_fast_mem, size_t use_mlock, al
 	else
 		ptr->ctx_info[1] = 1;
 
+//	printf("\n >>>>>>>>>>> %s %d <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", __FILE__, __LINE__);
 	memset(ptr->hash_state, 0, 224);
 
 	return ptr;

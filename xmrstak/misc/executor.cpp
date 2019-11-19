@@ -470,7 +470,12 @@ void executor::on_miner_result(size_t pool_id, job_result& oResult)
 			{
 				printer::inst()->print_msg(L3, "CPU: Share rejected. Pool: %s", pool->get_pool_addr());
 			}
+			else if (pvThreads->at(oResult.iThreadId)->backendType == xmrstak::iBackend::BackendType::PPU)
+			{
+				printer::inst()->print_msg(L3, "PPU: Share rejected. Pool: %s", pool->get_pool_addr());
+			}
 			else
+
 			{
 				printer::inst()->print_msg(L3, "%s GPU %u: Share rejected. Pool: %s", name.c_str(), pvThreads->at(oResult.iThreadId)->iGpuIndex, pool->get_pool_addr());
 			}
@@ -801,7 +806,7 @@ void executor::hashrate_report(std::string& out)
 	char num[32];
 	double fTotal[3] = {0.0, 0.0, 0.0};
 
-	for(uint32_t b = 0; b < 4u; ++b)
+	for(uint32_t b = 0; b < 5u; ++b)
 	{
 		std::vector<xmrstak::iBackend*> backEnds;
 		std::copy_if(pvThreads->begin(), pvThreads->end(), std::back_inserter(backEnds),

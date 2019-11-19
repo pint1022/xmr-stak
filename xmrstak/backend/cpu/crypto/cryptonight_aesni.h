@@ -65,6 +65,7 @@ extern "C"
 	void show_line(char * title, uint8_t * data, int s, int e);
 	bool print_m128i( char * nm, __m128i var);
 	void cpu_p_init(uint64_t monero_const, __m128i ax0, uint64_t idx0, __m128i bx0, __m128i bx1,  char * l0, uint32_t * cn_r_data, __m128i division_result_xmm);
+	void show_out(char* title, char* out, int count);
 	extern int s_ptr, num_ptr;
 }
 
@@ -1072,8 +1073,8 @@ struct Cryptonight_hash<1>
 		const size_t MEM = algo.Mem();
 
 		CN_INIT_SINGLE;
-		num_ptr = 2;
-		s_ptr = ITERATIONS -5;
+//		num_ptr = 2;
+//		s_ptr = ITERATIONS -5;
 		REPEAT_1(11, CN_INIT, monero_const, conc_var, l0, ax0, bx0, idx0, ptr0, bx1, sqrt_result, division_result_xmm, cn_r_data);
 
 		// Optim - 90% time boundary
@@ -1492,7 +1493,6 @@ struct Cryptonight_R_generator
 //		printf("\n %s %d: work.iBlockHeight %d, code %d\n", __FILE__, __LINE__, work.iBlockHeight, code_size);
 		if(ctx[0]->asm_version != 0)
 		{
-			printf("\n %s %d:\n", __FILE__, __LINE__);
 			v4_compile_code(N, ctx[0], code_size);
 			if(N == 2)
 				ctx[0]->hash_fn = Cryptonight_hash_asm<2u, 0u>::template hash<cryptonight_r>;

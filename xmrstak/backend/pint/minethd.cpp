@@ -90,20 +90,21 @@ minethd::minethd(miner_work& pWork, size_t iNo, int iMultiway, bool no_prefetch,
 	std::unique_lock<std::mutex> lck(thd_aff_set);
 	std::future<void> order_guard = order_fix.get_future();
 
+//	printf("%s %d: threadNo %d\n", __FILE__, __LINE__, iNo);
 	switch(iMultiway)
 	{
-	case 5:
-		oWorkThd = std::thread(&minethd::penta_work_main, this);
-		break;
-	case 4:
-		oWorkThd = std::thread(&minethd::quad_work_main, this);
-		break;
-	case 3:
-		oWorkThd = std::thread(&minethd::triple_work_main, this);
-		break;
-	case 2:
-		oWorkThd = std::thread(&minethd::double_work_main, this);
-		break;
+//	case 5:
+//		oWorkThd = std::thread(&minethd::penta_work_main, this);
+//		break;
+//	case 4:
+//		oWorkThd = std::thread(&minethd::quad_work_main, this);
+//		break;
+//	case 3:
+//		oWorkThd = std::thread(&minethd::triple_work_main, this);
+//		break;
+//	case 2:
+//		oWorkThd = std::thread(&minethd::double_work_main, this);
+//		break;
 	case 1:
 	default:
 		oWorkThd = std::thread(&minethd::work_main, this);
@@ -156,16 +157,16 @@ bool minethd::self_test()
 		return false;
 
 	cryptonight_ctx* ctx[MAX_N] = {0};
-//	for(int i = 0; i < MAX_N; i++)
-//	{
-		if((ctx[0] = cpu::minethd::minethd_alloc_ctx()) == nullptr)
+	for(int i = 0; i < MAX_N; i++)
+	{
+		if((ctx[i] = cpu::minethd::minethd_alloc_ctx()) == nullptr)
 		{
 			printer::inst()->print_msg(L0, "ERROR: miner was not able to allocate memory.");
-//			for(int j = 0; j < i; j++)
-				cryptonight_free_ctx(ctx[0]);
-//			return false;
+			for(int j = 0; j < i; j++)
+				cryptonight_free_ctx(ctx[j]);
+			return false;
 		}
-//	}
+	}
 //	show_pint("after alloc_ctx", ctx[0]->hash_state, 200);
 
 	bool bResult = true;
@@ -379,7 +380,7 @@ bool minethd::self_test()
 			ctx[0]->hash_fn(inputs, 44, out, ctx, algo);
 			printf("%s %d: results\n.............\n\n", __FILE__, __LINE__);
 			show_out("hash_fn", out, 32);
-			char results[] ="\xa3\x21\xc0\x48\x22\x6d\x72\xda\x5a\x65\x81\x58\xb0\x8c\xdd\x9a\x49\x1b\x07\x3b\x21\x8a\xee\xc7\xd3\xcd\x6a\x46\xc4\x92\xe1\xca";
+			char results[] = "\xf7\x59\x58\x8a\xd5\x7e\x75\x84\x67\x29\x54\x43\xa9\xbd\x71\x49\x0a\xbf\xf8\xe9\xda\xd1\xb9\x5b\x6b\xf2\xf5\xd0\xd7\x83\x87\xbc";
 //			bResult = bResult && memcmp(out, "\xf7\x59\x58\x8a\xd5\x7e\x75\x84\x67\x29\x54\x43\xa9\xbd\x71\x49\x0a\xbf\xf8\xe9\xda\xd1\xb9\x5b\x6b\xf2\xf5\xd0\xd7\x83\x87\xbc", 32) == 0;
 			show_out("hash_fn expected", results, 32);
 			bResult = bResult && memcmp(out, results, 32) == 0;
@@ -426,15 +427,15 @@ std::vector<iBackend*> minethd::thread_starter(uint32_t threadOffset, miner_work
 	if(!configEditor::file_exist(params::inst().configFilePPU))
 	{
 #ifndef CONF_NO_HWLOC
-		autoAdjustHwloc adjustHwloc;
-		if(!adjustHwloc.printConfig())
-		{
-			autoAdjust adjust;
-			if(!adjust.printConfig())
-			{
-				return pvThreads;
-			}
-		}
+//		autoAdjustHwloc adjustHwloc;
+//		if(!adjustHwloc.printConfig())
+//		{
+//			autoAdjust adjust;
+//			if(!adjust.printConfig())
+//			{
+//				return pvThreads;
+//			}
+//		}
 #else
 		autoAdjust adjust;
 		if(!adjust.printConfig())
@@ -813,7 +814,7 @@ void minethd::m_work_main()
 
 	while(bQuit == 0)
 	{
-//		printf("%s, %d: =============\n", __FILE__, __LINE__);
+		printf("%s, %d: =============\n", __FILE__, __LINE__);
 		if(oWork.bStall)
 		{
 			/*	We are stalled here because the executor didn't find a job for us yet,
@@ -827,7 +828,6 @@ void minethd::m_work_main()
 			p_multiway_work<N>(bWorkBlob, piNonce);
 			continue;
 		}
-		printf("%s, %d: =============\n", __FILE__, __LINE__);
 
 		constexpr uint32_t nonce_chunk = 256;
 		int64_t nonce_ctr = 0;
@@ -854,8 +854,6 @@ void minethd::m_work_main()
 			lastPoolId = oWork.iPoolId;
 			version = new_version;
 		}
-//		printf("%s, %d: =============\n", __FILE__, __LINE__);
-//		printf("%s %d: %s\n", __FILE__, __LINE__, get_algo_name(miner_algo.Id()).c_str());
 
 		if(on_new_job != nullptr)
 			on_new_job(oWork, ctx);
@@ -889,8 +887,10 @@ void minethd::m_work_main()
 
 			for(size_t i = 0; i < N; i++)
 			{
+//					printf("%s, %d: ============= iNounce %d, HashVal %lx, target %lx\n", __FILE__, __LINE__, iNonce, *piHashVal[i],  oWork.iTarget);
 				if(*piHashVal[i] < oWork.iTarget)
 				{
+					printf("%s, %d: ============= iCount HashVal %lx, target %lx\n", __FILE__, __LINE__, *piHashVal[i],  oWork.iTarget);
 					executor::inst()->push_event(
 						ex_event(job_result(oWork.sJobID, iNonce - N + i, bHashOut + 32 * i, iThreadNo, miner_algo),
 							oWork.iPoolId));
@@ -899,14 +899,146 @@ void minethd::m_work_main()
 
 			std::this_thread::yield();
 		}
+//		printf("\n==== %s %d: algo %s, N %d, jobNo %lx , generated hashcount %d ====\n", __FILE__, __LINE__, get_algo_name(miner_algo.Id()).c_str(), N, iJobNo, iCount);
 
 		globalStates::inst().consume_work(oWork, iJobNo);
 		p_multiway_work<N>(bWorkBlob, piNonce);
 	}
+	printf("\n== CPU: %s %d free context==\n", __FILE__, __LINE__);
 
 	for(int i = 0; i < N; i++)
 		cryptonight_free_ctx(ctx[i]);
 }
+
+
+//void minethd::ppu_work_main()
+//{
+////	if(affinity >= 0) //-1 means no affinity
+////		bindMemoryToNUMANode(affinity);
+////
+////	if(ppu_get_deviceinfo(&ctx) != 0 || cryptonight_extra_ppu_init(&ctx) != 1)
+////	{
+////		printer::inst()->print_msg(L0, "Setup failed for GPU %d. Exiting.\n", (int)iThreadNo);
+////		std::exit(0);
+////	}
+////
+////	// numa memory bind and gpu memory is initialized
+////	numa_promise.set_value();
+////
+//	std::this_thread::yield();
+//	// wait until all NVIDIA devices are initialized
+////	thread_work_guard.wait();
+//
+//	cryptonight_ctx* cpu_ctx;
+//	cpu_ctx = cpu::minethd::minethd_alloc_ctx();
+//
+//	// start with root algorithm and switch later if fork version is reached
+//	auto miner_algo = ::jconf::inst()->GetCurrentCoinSelection().GetDescription(1).GetMiningAlgoRoot();
+//
+//	cpu::minethd::cn_on_new_job set_job;
+//	cpu::minethd::func_multi_selector<1>(&cpu_ctx, set_job, ::jconf::inst()->HaveHardwareAes(), true /*bNoPrefetch*/, miner_algo);
+//
+//	uint32_t iNonce;
+//
+//	uint8_t version = 0;
+//	size_t lastPoolId = 0;
+//	while(bQuit == 0)
+//	{
+//		if(oWork.bStall)
+//		{
+//			/* We are stalled here because the executor didn't find a job for us yet,
+//			 * either because of network latency, or a socket problem. Since we are
+//			 * raison d'etre of this software it us sensible to just wait until we have something
+//			 */
+//
+//			while(globalStates::inst().iGlobalJobNo.load(std::memory_order_relaxed) == iJobNo)
+//				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//
+//			globalStates::inst().consume_work(oWork, iJobNo);
+//			continue;
+//		}
+//		uint8_t new_version = oWork.getVersion();
+//		if(new_version != version || oWork.iPoolId != lastPoolId)
+//		{
+//			coinDescription coinDesc = ::jconf::inst()->GetCurrentCoinSelection().GetDescription(oWork.iPoolId);
+//			if(new_version >= coinDesc.GetMiningForkVersion())
+//			{
+//				miner_algo = coinDesc.GetMiningAlgo();
+//				cpu::minethd::func_multi_selector<1>(&cpu_ctx, set_job, ::jconf::inst()->HaveHardwareAes(), true /*bNoPrefetch*/, miner_algo);
+//			}
+//			else
+//			{
+//				miner_algo = coinDesc.GetMiningAlgoRoot();
+//				cpu::minethd::func_multi_selector<1>(&cpu_ctx, set_job, ::jconf::inst()->HaveHardwareAes(), true /*bNoPrefetch*/, miner_algo);
+//			}
+//			lastPoolId = oWork.iPoolId;
+//			version = new_version;
+//		}
+//
+//		if(set_job != nullptr)
+//			set_job(oWork, &cpu_ctx);
+//
+//		cryptonight_extra_pint_set_data(&ctx, oWork.bWorkBlob, oWork.iWorkSize);
+//
+//		uint32_t h_per_round = ctx.device_blocks * ctx.device_threads;
+//		size_t round_ctr = 0;
+//
+//		assert(sizeof(job_result::sJobID) == sizeof(pool_job::sJobID));
+//
+//		if(oWork.bNiceHash)
+//			iNonce = *(uint32_t*)(oWork.bWorkBlob + 39);
+//
+//		while(globalStates::inst().iGlobalJobNo.load(std::memory_order_relaxed) == iJobNo)
+//		{
+//			//Allocate a new nonce every 16 rounds
+//			if((round_ctr++ & 0xF) == 0)
+//			{
+//				globalStates::inst().calc_start_nonce(iNonce, oWork.bNiceHash, h_per_round * 16);
+//				// check if the job is still valid, there is a small possibility that the job is switched
+//				if(globalStates::inst().iGlobalJobNo.load(std::memory_order_relaxed) != iJobNo)
+//					break;
+//			}
+//
+//			uint32_t foundNonce[10];
+//			uint32_t foundCount;
+//
+//			cryptonight_extra_ppu_prepare(&ctx, iNonce, miner_algo);
+//
+//			cryptonight_core_ppu_hash(&ctx, miner_algo, iNonce);
+//
+//			cryptonight_extra_ppu_final(&ctx, iNonce, oWork.iTarget, &foundCount, foundNonce, miner_algo);
+////			printf("%s %d: h_per_round %d, algo: %s, height %d, foundCount %d,  oWork.iWorkSize %d\n",
+////					__FILE__, __LINE__, h_per_round, get_algo_name(miner_algo.Id()).c_str(), cpu_ctx->cn_r_ctx.height, foundCount,  oWork.iWorkSize);
+//
+//			for(size_t i = 0; i < foundCount; i++)
+//			{
+//
+//				uint8_t bWorkBlob[128];
+//				uint8_t bResult[32];
+//
+//				memcpy(bWorkBlob, oWork.bWorkBlob, oWork.iWorkSize);
+//				memset(bResult, 0, sizeof(job_result::bResult));
+//
+//				*(uint32_t*)(bWorkBlob + 39) = foundNonce[i];
+//
+//				cpu_ctx->hash_fn(bWorkBlob, oWork.iWorkSize, bResult, &cpu_ctx, miner_algo);
+//				if((*((uint64_t*)(bResult + 24))) < oWork.iTarget) {
+//					executor::inst()->push_event(ex_event(job_result(oWork.sJobID, foundNonce[i], bResult, iThreadNo, miner_algo), oWork.iPoolId));
+////					printf("%s, %d: ============= iCount HashVal %lx, target %lx\n", __FILE__, __LINE__, *((uint64_t*)(bResult + 24)),  oWork.iTarget);
+//				}
+//				else
+//					executor::inst()->push_event(ex_event("PPU Invalid Result", ctx.device_id, oWork.iPoolId));
+//			}
+//
+//			iNonce += h_per_round;
+//			updateStats(h_per_round, oWork.iPoolId);
+//			std::this_thread::yield();
+//		}
+////		printf("\n== %s %d: algo %s, jobNo %lx ==\n", __FILE__, __LINE__, get_algo_name(miner_algo.Id()).c_str(),  iJobNo);
+//
+//		globalStates::inst().consume_work(oWork, iJobNo);
+//	}
+//}
 
 } // namespace ppu
 } // namespace xmrstak

@@ -34,9 +34,9 @@ uint32_t* shift64_r_VAL(uint32_t hi, uint32_t lo, uint32_t n);
 #define ROTL64(x, y, z) (rot64((x)[1], (x)[0], (y), &((z)[1]), &((z)[0])))
 
 #define SHIFTL64(x,y,z) (shift64_l((x)[1], (x)[0], (y), &((z)[1]), &((z)[0])))
-#define SHIFTL64_1(x,y) (shift64_l_VAL((x)[0], (x)[1], (y))))
+//#define SHIFTL64_1(x,y) (shift64_l_VAL((x)[0], (x)[1], (y))))
 #define SHIFTR64(x,y,z) (shift64_r((x)[1], (x)[0], (y), &((z)[1]), &((z)[0])))
-#define SHIFTR64_1(x,y) (shift64_r_VAL((x)[1], (x)[0], (y))))
+//#define SHIFTR64_1(x,y) (shift64_r_VAL((x)[1], (x)[0], (y))))
 
 #define ADD64(x, y, z) (add64((x)[1], (x)[0], (y)[1],(y)[0], &((z)[1]), &((z)[0])))
 
@@ -53,5 +53,12 @@ uint32_t* shift64_r_VAL(uint32_t hi, uint32_t lo, uint32_t n);
 #define XOR64_1(x, y) ({(x)[0] ^ (y)[0], (x)[1] ^ (y)[1]})
 #define ASSIGN64(x, y) (((x)[0] = (y)[0]), ((x)[1] = (y)[1]))
 
-
+#define LARGE64(x, y) {  								\
+	if ((x)[1]>(y)[1])			 						\
+		1;												\
+    else if (((x)[1] == (y)[1]) && ((x)[0] > (y)[0]))	\
+	   1;												\
+	else												\
+       0;												\
+}
 #endif

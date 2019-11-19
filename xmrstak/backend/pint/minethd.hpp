@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../cpu/crypto/cryptonight.h"
+#include "uap/cryptonight.hpp"
 #include "xmrstak/backend/iBackend.hpp"
 #include "xmrstak/backend/miner_work.hpp"
 #include "xmrstak/jconf.hpp"
@@ -37,6 +37,7 @@ class minethd : public iBackend
 
 	template <uint32_t N>
 	void m_work_main();
+	void ppu_work_main();
 
 	template <size_t N>
 	void p_multiway_work(uint8_t* bWorkBlob, uint32_t** piNonce);
@@ -53,6 +54,7 @@ class minethd : public iBackend
 
 	std::promise<void> order_fix;
 	std::mutex thd_aff_set;
+	pint_ctx ctx;
 
 	std::thread oWorkThd;
 	int64_t affinity;

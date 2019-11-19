@@ -403,6 +403,7 @@ bool pint_app_load(char* exe_file_b, int code_addr) {
     close(fd_in);
 
     pint_memcpy(binary, code_addr, binary_sz, pint_copy_host2device);
+    free(binary);
 
     return true;
 }
