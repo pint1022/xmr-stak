@@ -120,7 +120,6 @@ minethd::minethd(miner_work& pWork, size_t iNo, int iMultiway, bool no_prefetch,
 
 	std::unique_lock<std::mutex> lck(thd_aff_set);
 	std::future<void> order_guard = order_fix.get_future();
-	printf("%s %d: iMultiway %d\n", __FILE__, __LINE__, iMultiway);
 
 	switch(iMultiway)
 	{
@@ -191,6 +190,7 @@ cryptonight_ctx* minethd::minethd_alloc_ctx()
 		if(ctx == NULL)
 			ctx = cryptonight_alloc_ctx(0, 0, NULL);
 
+
 		if(ctx != NULL)
 		{
 			ctx->hash_fn = nullptr;
@@ -214,8 +214,10 @@ cryptonight_ctx* minethd::minethd_alloc_ctx()
 		return ctx;
 
 	case ::jconf::unknown_value:
+		printer::inst()->print_msg(L0, "warning MEMORY ALLOC FAILED: %d", __LINE__);
 		return NULL; //Shut up compiler
 	}
+	printer::inst()->print_msg(L0, "warning MEMORY ALLOC FAILED: %d", __LINE__);
 
 	return nullptr; //Should never happen
 }
@@ -470,19 +472,19 @@ bool minethd::self_test()
 		}
 		else if(algo == POW(cryptonight_r))
 		{
-			printf("%s %d: cryptonight_r\n.............\n", __FILE__, __LINE__);
+//			printf("%s %d: cryptonight_r\n.............\n", __FILE__, __LINE__);
 			minethd::cn_on_new_job set_job;
 			func_multi_selector<1>(ctx, set_job, ::jconf::inst()->HaveHardwareAes(), false, algo);
 			miner_work work;
 			work.iBlockHeight = 1806260;
 			set_job(work, ctx);
 			char inputs[] = "\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74\x20\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74\x20\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74";
-			printf("%s %d: cryptonight_r\n.............\n%s\n\n", __FILE__, __LINE__, inputs);
+//			printf("%s %d: cryptonight_r\n.............\n%s\n\n", __FILE__, __LINE__, inputs);
 //			ctx[0]->hash_fn("\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74\x20\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74\x20\x54\x68\x69\x73\x20\x69\x73\x20\x61\x20\x74\x65\x73\x74", 44, out, ctx, algo);
 			ctx[0]->hash_fn(inputs, 44, out, ctx, algo);
-			printf("%s %d: results\n.............\n\n", __FILE__, __LINE__);
-			show_out("hash_fn", out, 32);
-			show_out("hash_fn expected", "\xf7\x59\x58\x8a\xd5\x7e\x75\x84\x67\x29\x54\x43\xa9\xbd\x71\x49\x0a\xbf\xf8\xe9\xda\xd1\xb9\x5b\x6b\xf2\xf5\xd0\xd7\x83\x87\xbc", 32);
+//			printf("%s %d: results\n.............\n\n", __FILE__, __LINE__);
+//			show_out("hash_fn", out, 32);
+//			show_out("hash_fn expected", "\xf7\x59\x58\x8a\xd5\x7e\x75\x84\x67\x29\x54\x43\xa9\xbd\x71\x49\x0a\xbf\xf8\xe9\xda\xd1\xb9\x5b\x6b\xf2\xf5\xd0\xd7\x83\x87\xbc", 32);
 			bResult = bResult && memcmp(out, "\xf7\x59\x58\x8a\xd5\x7e\x75\x84\x67\x29\x54\x43\xa9\xbd\x71\x49\x0a\xbf\xf8\xe9\xda\xd1\xb9\x5b\x6b\xf2\xf5\xd0\xd7\x83\x87\xbc", 32) == 0;
 		}
 		else if(algo == POW(cryptonight_v8_reversewaltz))
@@ -855,6 +857,16 @@ void minethd::prep_multiway_work(uint8_t* bWorkBlob, uint32_t** piNonce)
 	}
 }
 
+void print_ctx(cryptonight_ctx* ctx) {
+	printf("\n====== context : ==================\n");
+	show_out("states", ctx->hash_state, 20);
+//	printf("\n");
+	show_out("states infor", ctx->ctx_info, 24);
+	printf("\n");
+	printf("long state 0x%lx \n", *ctx->long_state);
+	printf("\n");
+}
+
 template <uint32_t N>
 void minethd::multiway_work_main()
 {
@@ -902,8 +914,6 @@ void minethd::multiway_work_main()
 	size_t lastPoolId = 0;
 
 	func_multi_selector<N>(ctx, on_new_job, ::jconf::inst()->HaveHardwareAes(), bNoPrefetch, miner_algo, asm_version_str);
-//	printf("%s %d: algo: %s, id %d\n", __FILE__, __LINE__, get_algo_name(miner_algo.Id()).c_str(), miner_algo.Id());
-
 	while(bQuit == 0)
 	{
 		if(oWork.bStall)
@@ -948,7 +958,13 @@ void minethd::multiway_work_main()
 
 		if(on_new_job != nullptr)
 			on_new_job(oWork, ctx);
-//		printf("%s %d: algo %s, N %d\n", __FILE__, __LINE__, get_algo_name(miner_algo.Id()).c_str(), N);
+
+//		ctx[0]->threadno = iThreadNo;
+		char tl[50];
+//		sprintf(tl, "Thread %d init blob", iThreadNo);
+//		show_out(tl, bWorkBlob, 76);
+//		printf("\n=== %s %d: algo: %s, id %d, threadno %d\n", __FILE__, __LINE__, get_algo_name(miner_algo.Id()).c_str(), miner_algo.Id(), iThreadNo);
+//		print_ctx(ctx[0]);
 
 		while(globalStates::inst().iGlobalJobNo.load(std::memory_order_relaxed) == iJobNo)
 		{
@@ -973,12 +989,15 @@ void minethd::multiway_work_main()
 				*piNonce[i] = iNonce++;
 
 			ctx[0]->hash_fn(bWorkBlob, oWork.iWorkSize, bHashOut, ctx, miner_algo);
-//			printf("%s %d: start iNonce %d ================= iWorkSize %d, max_n %d, blobsize %d\n", __FILE__, __LINE__, iNonce, oWork.iWorkSize, MAX_N, sizeof(miner_work::bWorkBlob));
-//			printf("blob %x\n============================\nhashOut %x\n++++++++++++++++++++++", bWorkBlob, bHashOut);
+
 			for(size_t i = 0; i < N; i++)
 			{
 				if(*piHashVal[i] < oWork.iTarget)
 				{
+//					sprintf(tl, "Thread %d return hash_state", iThreadNo);
+//					show_out(tl, ctx[0]->hash_state, 20);											\
+//					show_out("long state", ctx[0]->long_state, 20);											\
+//					printf("%s, %d: ============= iCount HashVal %lx, target %lx\n", __FILE__, __LINE__, *piHashVal[i],  oWork.iTarget);
 					executor::inst()->push_event(
 						ex_event(job_result(oWork.sJobID, iNonce - N + i, bHashOut + 32 * i, iThreadNo, miner_algo),
 							oWork.iPoolId));
@@ -987,6 +1006,7 @@ void minethd::multiway_work_main()
 
 			std::this_thread::yield();
 		}
+//		printf("\n== CPU: %s %d: algo %s, N %d, jobNo %lx , generated hashcount %d==\n", __FILE__, __LINE__, get_algo_name(miner_algo.Id()).c_str(), N, iJobNo, iCount);
 
 		globalStates::inst().consume_work(oWork, iJobNo);
 		prep_multiway_work<N>(bWorkBlob, piNonce);

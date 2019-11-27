@@ -49,7 +49,7 @@ using namespace rapidjson;
  */
 enum configEnum
 {
-	aCpuThreadsConf,
+	aPpuThreadsConf,
 	sUseSlowMem
 };
 
@@ -63,7 +63,7 @@ struct configVal
 // Same order as in configEnum, as per comment above
 // kNullType means any type
 configVal oConfigValues[] = {
-	{aCpuThreadsConf, "cpu_threads_conf", kNullType}};
+	{aPpuThreadsConf, "ppu_threads_conf", kNullType}};
 
 constexpr size_t iConfigCnt = (sizeof(oConfigValues) / sizeof(oConfigValues[0]));
 
@@ -100,26 +100,30 @@ jconf::jconf()
 
 bool jconf::GetPPUThreadConfig(size_t id, thd_cfg& cfg)
 {
-	if(!prv->configValues[aCpuThreadsConf]->IsArray())
+	if(!prv->configValues[aPpuThreadsConf]->IsArray())
 		return false;
 
-	if(id >= prv->configValues[aCpuThreadsConf]->Size())
+	if(id >= prv->configValues[aPpuThreadsConf]->Size())
 		return false;
 
-	const Value& oThdConf = prv->configValues[aCpuThreadsConf]->GetArray()[id];
+	const Value& oThdConf = prv->configValues[aPpuThreadsConf]->GetArray()[id];
 
 	if(!oThdConf.IsObject())
 		return false;
 
-	const Value *mode, *no_prefetch, *aff, *asm_version;
+	const Value *mode, *no_prefetch, *aff, *asm_version, *ppu_kernel;
 	mode = GetObjectMember(oThdConf, "low_power_mode");
 	no_prefetch = GetObjectMember(oThdConf, "no_prefetch");
 	aff = GetObjectMember(oThdConf, "affine_to_cpu");
 	asm_version = GetObjectMember(oThdConf, "asm");
+	ppu_kernel = GetObjectMember(oThdConf, "ppu_kernel");
 
-	if(mode == nullptr || no_prefetch == nullptr || aff == nullptr || asm_version == nullptr)
+//	printf("\n================%s %d:=========asm %s, path to kernel b file\n", __FILE__, __LINE__, asm_version->GetString());
+
+	if(mode == nullptr || no_prefetch == nullptr || aff == nullptr || asm_version == nullptr )
 		return false;
 
+//	printf("\n================%s %d: %s=========\n", __FILE__, __LINE__, ppu_kernel);
 	if(!mode->IsBool() && !mode->IsNumber())
 		return false;
 
@@ -148,13 +152,17 @@ bool jconf::GetPPUThreadConfig(size_t id, thd_cfg& cfg)
 		return false;
 	cfg.asm_version_str = asm_version->GetString();
 
+	if(!ppu_kernel->IsString())
+		return false;
+	cfg.ppu_kernel_path = ppu_kernel->GetString();
+
 	return true;
 }
 
 size_t jconf::GetPPUThreadCount()
 {
-	if(prv->configValues[aCpuThreadsConf]->IsArray())
-		return prv->configValues[aCpuThreadsConf]->Size();
+	if(prv->configValues[aPpuThreadsConf]->IsArray())
+		return prv->configValues[aPpuThreadsConf]->Size();
 	else
 		return 0;
 }

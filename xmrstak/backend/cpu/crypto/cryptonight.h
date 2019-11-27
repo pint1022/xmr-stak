@@ -52,4 +52,9 @@ struct alloc_msg
 size_t cryptonight_init(size_t use_fast_mem, size_t use_mlock, alloc_msg* msg);
 cryptonight_ctx* cryptonight_alloc_ctx(size_t use_fast_mem, size_t use_mlock, alloc_msg* msg);
 void cryptonight_free_ctx(cryptonight_ctx* ctx);
+bool cryptonight_ppu_init(pint_ctx* ctx);
+void cryptonight_ppu_set_data(pint_ctx* ctx, cryptonight_ctx* cpu_ctx, void* data, uint32_t len,  xmrstak_algo& miner_algo, int StartNonce);
+void cryptonight_ppu_hash(pint_ctx* ctx, xmrstak_algo& miner_algo);
+bool cryptonight_ppu_exit(pint_ctx* ctx);
+
 //oid show_out(char* title, char* out, int count);

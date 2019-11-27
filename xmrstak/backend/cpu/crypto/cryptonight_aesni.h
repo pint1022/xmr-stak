@@ -786,6 +786,9 @@ inline void cryptonight_conceal_tweak(__m128i& cx, __m128& conc_var)
 	}                                                                                                                                                                                    \
 	__m128i* ptr0
 
+//show_out("cpu input", (uint8_t*)input + len * n, len);              \
+//show_out("cpu hash", ctx[n]->hash_state, 200);              \
+
 #define CN_INIT(n, monero_const, conc_var, l0, ax0, bx0, idx0, ptr0, bx1, sqrt_result, division_result_xmm, cn_r_data)                                                                   \
 	keccak((const uint8_t*)input + len * n, len, ctx[n]->hash_state, 200);                                                                                                               \
 	uint64_t monero_const;                                                                                                                                                               \
@@ -1491,6 +1494,8 @@ struct Cryptonight_R_generator
 		ctx[0]->cn_r_ctx.height = work.iBlockHeight;
 		int code_size = v4_random_math_init<ALGO>(ctx[0]->cn_r_ctx.code, work.iBlockHeight);
 //		printf("\n %s %d: work.iBlockHeight %d, code %d\n", __FILE__, __LINE__, work.iBlockHeight, code_size);
+//	   show_out("cpu random math code",(uint8_t*)ctx[0]->cn_r_ctx.code, code_size);
+
 		if(ctx[0]->asm_version != 0)
 		{
 			v4_compile_code(N, ctx[0], code_size);

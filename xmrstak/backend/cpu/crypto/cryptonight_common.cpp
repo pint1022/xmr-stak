@@ -447,3 +447,202 @@ void cryptonight_free_ctx(cryptonight_ctx* ctx)
 
 	_mm_free(ctx);
 }
+/**
+ * @ingroup pint-native-api
+ * @function
+ *    cryptonight_ppu_init
+ *
+ * @brief
+ *  - This function initialize the PPU device for the cryptonight hashing. set up the following data:
+ *      ctx space
+ *      state space
+ *      long state space
+ *      results space
+ *
+ * @parameters
+ *  - pint_ctx * : the context of the operation
+* @return
+ */
+
+bool cryptonight_ppu_init(pint_ctx* ctx) {
+	bool ret;
+    char map_path[] = "/home/swang/src/xmr_pint/pint_hash256_GlobalMap.txt";
+    char exe_file_b[] = "/home/swang/src/xmr_pint/pint_hash256.b";
+    int code_addr = 0;
+//
+//    int var_length = 16;
+
+	int var_count = get_variable_counts(map_path);
+
+	if (var_count > 0) {
+	    uap_variable_t * varlist;
+	    varlist = (uap_variable_t *) malloc(var_count * sizeof(uap_variable_t));
+		read_map_file(map_path, varlist);
+
+//		uint64_t res_ptr, data_ptr, indx_ptr;
+		int res_length; //25 states, uint64_t type
+
+		//
+		// set arguments for the app
+		//
+	    if (pint_app_load(exe_file_b, code_addr)) {
+//	    	int data_len  = sizeof(pint_ctx) + (CN_MEMORY + HASH_STATE_LENGTH + HASH_LENGTH + sizeof(cryptonight_ctx)) * CORE_NUM;  //inputs, state, long state
+	    	int data_len  = sizeof(pint_ctx) + (CN_MEMORY + HASH_LENGTH + sizeof(cryptonight_ctx)) * CORE_NUM;  //inputs, state, long state
+	    	ctx->d_ctx_a = pint_malloc(data_len , PINT_ARG_GLOBAL_PTR);
+	    	ctx->d_ctx_b = ctx->d_ctx_a + sizeof(pint_ctx);
+
+//	    	ctx->d_ctx_state = ctx->d_ctx_b + sizeof(cryptonight_ctx) * CORE_NUM;
+//	    	ctx->d_long_state = ctx->d_ctx_state + HASH_STATE_LENGTH  * CORE_NUM;
+	    	ctx->d_long_state = ctx->d_ctx_b + sizeof(cryptonight_ctx) * CORE_NUM;
+	    	ctx->outputlen = HASH_LENGTH  * CORE_NUM;
+	    	ctx->d_results_addr = ctx->d_long_state + CN_MEMORY  * CORE_NUM;  //results?
+
+	    	set_parameter(varlist, var_count, "p_CtxData", PINT_ARG_VALUE, ctx->d_ctx_a, 4);
+	    	set_parameter(varlist, var_count, "p_SrcData", PINT_ARG_VALUE, ctx->d_ctx_state, 4);
+	    	set_parameter(varlist, var_count, "p_DstData", PINT_ARG_VALUE, ctx->d_result_nonce, 4);
+	    //	printf("results addr %d\n", res_ptr);
+
+	    	set_parameter(varlist, var_count, "nBatch", PINT_ARG_VALUE, CORE_NUM, 4);
+	    	set_parameter(varlist, var_count, "op", PINT_ARG_VALUE, OP_CRYPTONIGHT, 4);
+
+	    	ctx->var_list = varlist;
+	    } else
+	    {
+	    	printf("Error: loading executables fails....\n");
+	    	free(varlist);
+	    	return false;
+	    }
+	}
+	return true;
+}
+
+/**
+ * @ingroup pint-native-api
+ * @function
+ *    cryptonight_ppu_set_data
+ *
+ * @brief
+ *  - This function transfers the cryptonight workblob data to the device for the next round of hashing.
+ *
+ * @parameters
+ *  - pint_ctx * : the context of the operation
+ *  - uint8_t * : the blob of data.
+ *  - int : the size of blob.
+* @return
+ */
+void cryptonight_ppu_set_data(pint_ctx* ctx, cryptonight_ctx* cpu_ctx, void* data, uint32_t len,  xmrstak_algo& miner_algo) {
+	if (ctx->var_list == nullptr)
+		return;
+	int i, ret, curr_addr;
+	ctx->d_input = pint_malloc(len, PINT_ARG_GLOBAL_PTR);
+	ctx->inputlen = len;
+	ctx->cached_algo = miner_algo;
+
+	curr_addr = ctx->d_input;
+
+	for (i = 0; i < CORE_NUM; i++) {
+		ret = pint_memcpy(curr_addr, data, ctx->inputlen, pint_copy_host2device);
+		if (ret != ctx->inputlen)
+			return;
+		curr_addr += ctx->inputlen;
+	}
+	ret = pint_memcpy(ctx->d_ctx_a, ctx, sizeof(pint_ctx), pint_copy_host2device);
+
+	curr_addr = ctx->d_ctx_b;
+
+	int cpu_ctx_size = sizeof(cryptonight_ctx);
+	for (i = 0; i < CORE_NUM; i++) {
+		ret = pint_memcpy(curr_addr, cpu_ctx, cpu_ctx_size, pint_copy_host2device);
+		curr_addr += cpu_ctx_size;
+	}
+}
+
+void cryptonight_ppu_hash(pint_ctx* ctx, xmrstak_algo& miner_algo)
+{
+
+//	typedef void (*ppu_hash_fn)(nvid_ctx * ctx);
+
+	if(miner_algo == invalid_algo)
+		return;
+
+//	static const ppu_hash_fn func_table[] = {
+//		cryptonight_core_gpu_hash<cryptonight, 0>,
+//		cryptonight_core_gpu_hash<cryptonight, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_lite, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_lite, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_monero, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_monero, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_heavy, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_heavy, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_aeon, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_aeon, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_ipbc, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_ipbc, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_stellite, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_stellite, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_masari, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_masari, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_haven, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_haven, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_bittube2, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_bittube2, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_monero_v8, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_monero_v8, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_superfast, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_superfast, 1>,
+//
+//		cryptonight_core_gpu_hash_gpu<cryptonight_gpu, 0>,
+//		cryptonight_core_gpu_hash_gpu<cryptonight_gpu, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_conceal, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_conceal, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_r_wow, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_r_wow, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_r, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_r, 1>,
+//
+//		cryptonight_core_gpu_hash<cryptonight_v8_reversewaltz, 0>,
+//		cryptonight_core_gpu_hash<cryptonight_v8_reversewaltz, 1>};
+//
+//	std::bitset<1> digit;
+//	digit.set(0, ctx->memMode == 1);
+
+	int op = OP_CRYPTONIGHT;
+   	pint_app_exe(ctx->d_results, ctx->d_results_addr, ctx->outputlen, op);
+
+}
+
+/**
+ * @ingroup pint-native-api
+ * @function
+ *    cryptonight_ppu_init
+ *
+ * @brief
+ *  - This function frees all memories used by the PPU device and cpu for the cryptonight hashing
+ *      ctx space
+ *
+ * @parameters
+ *  - pint_ctx * : the context of the operation
+* @return
+ */
+
+bool cryptonight_ppu_exit(pint_ctx* ctx) {
+	bool ret;
+	pint_free(ctx->d_results_addr);
+	free(ctx->var_list);
+	return true;
+}
+

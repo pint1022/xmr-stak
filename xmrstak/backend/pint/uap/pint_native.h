@@ -25,7 +25,12 @@ int set_parameter(uap_variable_t *varlist, int var_count, char * param_name, int
 void pint_hash256(char *outp, char *inp, int len);
 void pint_groestl(char *inp, int length, char *outp);
 void pint_hash(char *inp, int length, char *outp, int op, int out_len);
+void pint_hash_batch(char *inp, int length, char *outp, int op, int out_len, int nbatch);
 void pint_keccakf(uint64_t *inp, int length, char *outp, int rounds);
 void pint_skein(char *inp, int length, char *outp, int io);
-//void show_pint(char* title, char* out, int count);
-#endif
+int get_variable_counts(char* mapfile);
+void pint_mm(uint64_t *inp, int str_len, char *outp, int var_num, int op, int nbatch);
+
+
+
+#endif // pint_native.h

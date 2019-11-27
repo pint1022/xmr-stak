@@ -48,6 +48,20 @@ void pint_mm_slli_si128(pint_m128i src, int imm8, pint_m128i dst) {
 	}
 }
 
+void pint_mm_srli_si128(pint_m128i src, int imm8, pint_m128i dst) {
+	if (imm8 == 0) {
+		pint_mm_load_si128(src, dst);
+	}
+	else if (imm8 > 15)
+		memset(src, 0, 16);
+	else {
+		int i;
+		for (i = imm8; i < 16; i++)
+			dst[i - imm8] = src[i];
+	}
+}
+
+
 void pint_mm_store_si128(pint_m128i dst, pint_m128i src) {
 	for (int i = 0; i < 16; i++)
 		dst[i] = src[i];

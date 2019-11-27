@@ -20,13 +20,14 @@ class jconf
 		return oInst;
 	};
 
-	bool parse_config(const char* sFilename = params::inst().configFileCPU.c_str());
+	bool parse_config(const char* sFilename = params::inst().configFilePPU.c_str());
 
 	struct thd_cfg
 	{
 		int iMultiway;
 		bool bNoPrefetch;
 		std::string asm_version_str;
+		std::string ppu_kernel_path;
 		long long ppu_aff;
 	};
 

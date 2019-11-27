@@ -33,20 +33,25 @@ class minethd : public iBackend
 		bool bHaveAes, bool bNoPrefetch, const xmrstak_algo& algo, const std::string& asm_version_str = "off");
 
   private:
-	minethd(miner_work& pWork, size_t iNo, int iMultiway, bool no_prefetch, int64_t affinity, const std::string& asm_version);
+//	minethd(miner_work& pWork, size_t iNo, const jconf::thd_cfg& cfg, const std::string& kernel_path);
+//
+//	std::promise<void> numa_promise;
+//	std::promise<void> thread_work_promise;
+//
+//	// block thread until all NVIDIA GPUs are initialized
+//	std::future<void> thread_work_guard;
+	void ppu_work_main();
+
+	minethd(miner_work& pWork, size_t iNo, int iMultiway, bool no_prefetch, int64_t affinity, const std::string& asm_version, const std::string& kernel_path);
 
 	template <uint32_t N>
 	void m_work_main();
-	void ppu_work_main();
 
 	template <size_t N>
 	void p_multiway_work(uint8_t* bWorkBlob, uint32_t** piNonce);
 
 	void work_main();
-	void double_work_main();
-	void triple_work_main();
-	void quad_work_main();
-	void penta_work_main();
+
 
 	uint64_t iJobNo;
 
@@ -62,6 +67,7 @@ class minethd : public iBackend
 	bool bQuit;
 	bool bNoPrefetch;
 	std::string asm_version_str = "off";
+	std::string ppu_kernel_path = "./";
 };
 
 } // namespace ppu
